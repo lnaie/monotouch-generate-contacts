@@ -44,37 +44,51 @@ namespace GenerateContacts
 
 		private void PopulateContacts()
 		{
-			var addressBook = new ABAddressBook();
-			var people = addressBook.GetPeople();
-
-			// clear address book
-			foreach(var person in people)
-			{
-				addressBook.Remove(person);
-			}
-
-			addressBook.Save();
-
-			var random = new Random();
-			// create 200 random contacts
-			foreach (var name in _names)
-			{
-			  // create an ABRecordRef
-				var record = new ABPerson();
-				record.FirstName = name[0];
-				record.LastName = name[1];
-				var phones = new ABMutableStringMultiValue();
-				phones.Add(GeneratePhone(random).ToString(), ABPersonPhoneLabel.Mobile);
-
-				if(random.Next() % 2 == 1) {
-					phones.Add(GeneratePhone(random).ToString(), ABPersonPhoneLabel.Main);
+			NSError error;
+			var addressBook = ABAddressBook.Create(out error);
+			Action<bool, NSError> OnAccessRequestCompleted = (accessGranted, reqError) => {
+				// not granted? don't show anything
+				if (!accessGranted) {
+					throw new Exception ("Allow access to contacts in Settings > Privacy > Contacts");
 				}
 
-				record.SetPhones(phones);
+				// clear address book
+				var people = addressBook.GetPeople();
+				foreach(var person in people)
+					addressBook.Remove(person);
+				addressBook.Save();
 
-				addressBook.Add(record);
+				// Create new
+				var random = new Random();
+				foreach (var name in _names)
+				{
+					// create an ABRecordRef
+					var record = new ABPerson();
+					record.FirstName = name[0];
+					record.LastName = name[1];
+
+					var phones = new ABMutableStringMultiValue();
+					phones.Add(GeneratePhone(random).ToString(), ABPersonPhoneLabel.Mobile);
+					if(random.Next() % 2 == 1)
+						phones.Add(GeneratePhone(random).ToString(), ABPersonPhoneLabel.Main);
+
+					record.SetPhones(phones);
+					addressBook.Add(record);
+				}
+				addressBook.Save();
+			};
+
+			if (error != null) {
+				throw new Exception ("Allow access to contacts in Settings > Privacy > Contacts");
 			}
-			addressBook.Save();
+
+			// request accesss
+			var authStatus = ABAddressBook.GetAuthorizationStatus ();
+
+			if (authStatus != ABAuthorizationStatus.Authorized)
+				addressBook.RequestAccess (OnAccessRequestCompleted);
+			else
+				OnAccessRequestCompleted (true, null);
 		}
 
 		public static long GeneratePhone(Random random)

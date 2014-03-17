@@ -9,5 +9,9 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSMainNibFile</key>
+	<string>MainWindow</string>
+	<key>MinimumOSVersion</key>
+	<string>3.0</string>
 </dict>
 </plist>
